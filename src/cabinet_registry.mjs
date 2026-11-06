@@ -38,9 +38,14 @@ export function upsertCabinetRegistryRows(existingRows, updates) {
       ...update,
     });
   }
-  return [...rowsByKey.values()].sort((left, right) =>
-    cabinetRegistryKey(left).localeCompare(cabinetRegistryKey(right)),
-  );
+  return [...rowsByKey.values()]
+    .map((row) => {
+      const { notes, ...cleanRow } = row;
+      return cleanRow;
+    })
+    .sort((left, right) =>
+      cabinetRegistryKey(left).localeCompare(cabinetRegistryKey(right)),
+    );
 }
 
 export async function writeCabinetRegistry(registryPath, rows) {

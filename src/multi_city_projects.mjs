@@ -109,7 +109,7 @@ export function splitMultiCityCabinetsStats(cabinets, multiCityCabinets = {}) {
 export function projectEntriesForCabinet(cabinet, multiCityCabinets = {}) {
   const parsed = cabinet.parsed || parseCabinetName(cabinet.cabinetName);
   if (!parsed) return [];
-  const cities = multiCityCabinets[parsed.projectKey];
+  const cities = citiesForParsedCabinet(parsed, multiCityCabinets);
   if (!cities?.length) return [parsed];
   return cities.map((city) => ({
     projectName: parsed.projectName,
@@ -123,7 +123,11 @@ export function expandProjectRecordsForMultiCity(projects, multiCityCabinets = {
   const recordsByKey = new Map(projects.map((project) => [project.project_key, project]));
 
   for (const [multiCityKey, cities] of Object.entries(multiCityCabinets)) {
-    const source = recordsByKey.get(multiCityKey);
+    const source = recordsByKey.get(multiCityKey)
+      || projects.find((project) => {
+        if (normalize(project.project_name) !== normalize(projectNameFromKey(multiCityKey))) return false;
+        return cities.some((city) => normalize(project.city) === normalize(city));
+      });
     if (!source) continue;
 
     const spreadsheetIds = extractSpreadsheetIds(source.google_spreadsheet_url);

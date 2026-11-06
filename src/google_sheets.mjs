@@ -22,10 +22,10 @@ async function googleJson(token, url, options = {}) {
     if (response.ok) return data;
 
     lastError = new Error(`${options.method || "GET"} ${url} failed: ${response.status} ${JSON.stringify(data)}`);
-    if (response.status !== 429) break;
+    if (response.status !== 429 && response.status < 500) break;
 
     const retryAfter = Number(response.headers.get("retry-after")) || 0;
-    const backoff = retryAfter > 0 ? retryAfter * 1000 : 15000 * (attempt + 1);
+    const backoff = retryAfter > 0 ? retryAfter * 1000 : 5000 * (attempt + 1);
     await sleep(backoff);
   }
 
@@ -36,12 +36,15 @@ export class GoogleSheetsClient {
   constructor({ credentialsPath }) {
     this.credentialsPath = credentialsPath;
     this.token = null;
+    this.tokenExpiresAt = 0;
     this.nextRequestAt = 0;
   }
 
-  async accessToken() {
-    if (!this.token) {
+  async accessToken({ force = false } = {}) {
+    if (force || !this.token || Date.now() >= this.tokenExpiresAt) {
       this.token = await getGoogleAccessToken(this.credentialsPath, [SHEETS_SCOPE]);
+      // Google service-account tokens are valid for one hour. Renew early during long VK scans.
+      this.tokenExpiresAt = Date.now() + 50 * 60 * 1000;
     }
     return this.token;
   }
@@ -102,6 +105,17 @@ export class GoogleSheetsClient {
     );
   }
 
+
+  async duplicateSheet(spreadsheetId, sourceSheetId, newSheetName) {
+    const result = await this.batchUpdateSpreadsheet(spreadsheetId, [{
+      duplicateSheet: {
+        sourceSheetId,
+        newSheetName,
+      },
+    }]);
+    return result.replies?.[0]?.duplicateSheet?.properties || null;
+  }
+
   async ensureSheet(spreadsheetId, sheetName) {
     const spreadsheet = await this.getSpreadsheet(spreadsheetId);
     if (spreadsheet.sheets.some((sheet) => sheet.properties.title === sheetName)) {
@@ -126,6 +140,13 @@ export class GoogleSheetsClient {
       await sleep(this.nextRequestAt - now);
     }
     this.nextRequestAt = Date.now() + 1100;
-    return googleJson(token, url, options);
+    try {
+      return await googleJson(token, url, options);
+    } catch (error) {
+      if (!String(error.message).includes("ACCESS_TOKEN_EXPIRED")) throw error;
+      this.token = null;
+      this.tokenExpiresAt = 0;
+      return googleJson(await this.accessToken({ force: true }), url, options);
+    }
   }
 }

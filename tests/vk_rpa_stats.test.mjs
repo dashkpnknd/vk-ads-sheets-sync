@@ -13,11 +13,11 @@ test("formats date for VK dashboard endpoints", () => {
   assert.equal(vkDate("2026-06-18"), "18.06.2026");
 });
 
-test("builds ad plans URL for selected internal account", () => {
-  assert.equal(
-    buildAdPlansUrl({ accountId: "20436176" }),
-    "https://ads.vk.com/proxy/mt/v2/ad_plans.json?fields=id%2Cname%2Cstatus%2Cdelivery%2Cbudget_limit%2Cbudget_limit_day%2Ccreated%2Cdate_end%2Cdate_start%2Cobjective%2Cstats_info%2Ccampaigns&_status__in=active%2Cblocked&sorting=-id&limit=50&offset=0&account=20436176",
-  );
+test("historical campaign lookup preserves account and includes ended campaigns", () => {
+  const url = new URL(buildAdPlansUrl({ accountId: "20436176", sudo: "client@agency_client" }));
+  assert.equal(url.searchParams.get("account"), "20436176");
+  assert.equal(url.searchParams.get("sudo"), "client@agency_client");
+  assert.equal(url.searchParams.has("_status__in"), false);
 });
 
 test("builds dashboard stats URL for campaign ids and date", () => {
@@ -27,7 +27,7 @@ test("builds dashboard stats URL for campaign ids and date", () => {
       date: "2026-06-18",
       adPlanIds: ["22223464", "22223329"],
     }),
-    "https://ads.vk.com/proxy/mt/v3/statistics/ad_plans/day.json?date_from=18.06.2026&date_to=18.06.2026&attribution=conversion&id=22223464%2C22223329&metrics=base&limit=2&account=20436176",
+    "https://ads.vk.ru/proxy/mt/v3/statistics/ad_plans/day.json?date_from=18.06.2026&date_to=18.06.2026&attribution=conversion&id=22223464%2C22223329&metrics=base&limit=2&account=20436176",
   );
 });
 

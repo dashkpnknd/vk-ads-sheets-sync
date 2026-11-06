@@ -49,3 +49,19 @@ test("builds stable project key from project and city", () => {
 test("rejects names that do not contain project and city delimiter", () => {
   assert.equal(parseCabinetName("Непонятное название"), null);
 });
+
+test("ignores cabinets explicitly marked as not active", () => {
+  assert.equal(parseCabinetName("One Service | Уфа (8) НЕТ"), null);
+});
+
+test("parses Cerebro agency cabinet names without contractor details", () => {
+  assert.deepEqual(
+    parseCabinetName("9:41 | Зеленодольск (Церебро) | ИП Смирнов Г.Е. ИНН 164813825260"),
+    {
+      projectName: "9:41",
+      city: "Зеленодольск",
+      duplicateNumber: null,
+      projectKey: "9:41|зеленодольск",
+    },
+  );
+});

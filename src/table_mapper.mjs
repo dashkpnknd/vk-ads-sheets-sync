@@ -21,6 +21,12 @@ const METRIC_LABELS = {
   spendWithVat: "Расходы + НДС",
 };
 
+const METRIC_ALIASES = {
+  cplWithBonus: ["Цена за лид с учетом бонусов", "Цена за лид / с учетом бонусов"],
+  spend: ["Расходы", "Рекл. бюджет"],
+  spendWithVat: ["Расходы + НДС", "Рекл. бюджет с НДС"],
+};
+
 function normalizeLabel(value) {
   return String(value ?? "")
     .replace(/\s+/g, " ")
@@ -80,7 +86,11 @@ function findMetricRowIndex(values, label, preferredColumns = [0]) {
 export function buildMetricUpdates({ sheetName, values, date, metrics }) {
   const column = findDateColumn(values, date);
   return Object.entries(METRIC_LABELS).map(([metricKey, label]) => {
-    const row = findMetricRow(values, label);
+    const labels = METRIC_ALIASES[metricKey] || [label];
+    const row = labels
+      .map((candidate) => values.findIndex((item) => normalizeLabel(item[0]) === normalizeLabel(candidate)))
+      .find((index) => index !== -1);
+    if (row === undefined) throw new Error(`Metric row not found: ${label}`);
     return {
       range: `${sheetName}!${columnToA1(column)}${row + 1}`,
       values: [[metrics[metricKey]]],
@@ -88,7 +98,7 @@ export function buildMetricUpdates({ sheetName, values, date, metrics }) {
   });
 }
 
-export function buildMetricUpdatePlan({ sheetName, values, date, metrics, sectionLabel = "" }) {
+export function buildMetricUpdatePlan({ sheetName, values, date, metrics, sectionLabel = "", additionalMetricLabels = {}, metricKeys = [] }) {
   let rowOffset = 0;
   let sectionValues = values;
   if (sectionLabel) {
@@ -103,8 +113,14 @@ export function buildMetricUpdatePlan({ sheetName, values, date, metrics, sectio
   const updates = [];
   const missingMetricLabels = [];
 
-  for (const [metricKey, label] of Object.entries(METRIC_LABELS)) {
-    const row = findMetricRowIndex(sectionValues, label, [column - 1, 0]);
+  const metricLabels = { ...METRIC_LABELS, ...additionalMetricLabels };
+  const selectedMetricKeys = new Set(metricKeys);
+  for (const [metricKey, label] of Object.entries(metricLabels)) {
+    if (selectedMetricKeys.size && !selectedMetricKeys.has(metricKey)) continue;
+    const labels = METRIC_ALIASES[metricKey] || [label];
+    const row = labels
+      .map((candidate) => findMetricRowIndex(sectionValues, candidate, [column - 1, 0]))
+      .find((index) => index !== -1) ?? -1;
     if (row === -1) {
       missingMetricLabels.push(label);
       continue;

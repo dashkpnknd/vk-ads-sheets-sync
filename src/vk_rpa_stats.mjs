@@ -1,4 +1,4 @@
-const HOST = "https://ads.vk.com";
+const HOST = "https://ads.vk.ru";
 const AD_PLAN_FIELDS = [
   "id",
   "name",
@@ -38,7 +38,7 @@ export function vkDate(date) {
 export function buildAdPlansUrl({ accountId, sudo }) {
   const url = new URL("/proxy/mt/v2/ad_plans.json", HOST);
   url.searchParams.set("fields", AD_PLAN_FIELDS.join(","));
-  url.searchParams.set("_status__in", "active,blocked");
+  // Historical backfills must include campaigns that have ended since the target date.
   url.searchParams.set("sorting", "-id");
   url.searchParams.set("limit", "50");
   url.searchParams.set("offset", "0");

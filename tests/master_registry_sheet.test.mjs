@@ -103,3 +103,37 @@ test("does not preserve old success notes when current run has no error", () => 
 
   assert.equal(result.projectRows[0][7], "");
 });
+
+test("keeps existing project rows when no cabinet is discovered in the current run", () => {
+  const result = buildMasterRegistryRows(
+    [
+      { accountLabel: "vk-account-1", cabinetId: "1", cabinetName: "Аймоби | Москва" },
+    ],
+    [
+      {
+        status: "готов",
+        project_name: "Аймоби",
+        city: "Москва",
+        project_key: "аймоби|москва",
+        google_spreadsheet_url: "https://docs.google.com/spreadsheets/d/aimobi_sheet_id_1234567890/edit",
+        sheet_name: "ВК Таргет Июнь",
+      },
+      {
+        status: "готов",
+        project_name: "Старый проект",
+        city: "Казань",
+        project_key: "старый проект|казань",
+        google_spreadsheet_url: "https://docs.google.com/spreadsheets/d/old_sheet_id_1234567890/edit",
+        sheet_name: "",
+      },
+    ],
+    [],
+  );
+
+  const preserved = result.projectRows.find((row) => row[3] === "старый проект|казань");
+  assert.ok(preserved);
+  assert.equal(preserved[1], "Старый проект");
+  assert.equal(preserved[2], "Казань");
+  assert.equal(preserved[4], "https://docs.google.com/spreadsheets/d/old_sheet_id_1234567890/edit");
+  assert.equal(preserved[6], 0);
+});

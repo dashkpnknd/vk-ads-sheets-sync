@@ -49,7 +49,7 @@ export async function requestAccessToken({
     body: new URLSearchParams({
       grant_type: "client_credentials",
       client_id: clientId,
-      client_secret: "<REDACTED>"
+      client_secret: clientSecret,
     }),
   });
   const data = await response.json();

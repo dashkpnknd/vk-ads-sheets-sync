@@ -25,12 +25,16 @@ export function aggregateCabinetsByProject(cabinets) {
       city: parsed.city,
       leads: 0,
       spend: 0,
+      clicks: 0,
+      shows: 0,
       cabinetIds: [],
       cabinetNames: [],
     };
 
     current.leads += Number(stats.leads) || 0;
     current.spend += spend;
+    current.clicks += Number(stats.clicks) || 0;
+    current.shows += Number(stats.shows) || 0;
     current.cabinetIds.push(cabinet.cabinetId);
     current.cabinetNames.push(cabinet.cabinetName);
     projectsByKey.set(parsed.projectKey, current);

@@ -30,8 +30,16 @@ export class CdpClient {
       const pending = this.pending.get(message.id);
       if (!pending) return;
       this.pending.delete(message.id);
+      clearTimeout(pending.timeout);
       if (message.error) pending.reject(new Error(JSON.stringify(message.error)));
       else pending.resolve(message.result);
+    });
+    this.ws.addEventListener("close", () => {
+      for (const pending of this.pending.values()) {
+        clearTimeout(pending.timeout);
+        pending.reject(new Error("CDP connection closed"));
+      }
+      this.pending.clear();
     });
     await new Promise((resolve, reject) => {
       this.ws.addEventListener("open", resolve, { once: true });
@@ -43,8 +51,18 @@ export class CdpClient {
     const id = this.nextId++;
     const payload = JSON.stringify({ id, method, params });
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.ws.send(payload);
+      const timeout = setTimeout(() => {
+        if (!this.pending.delete(id)) return;
+        reject(new Error(`CDP command timed out after ${CDP_COMMAND_TIMEOUT_MS}ms: ${method}`));
+      }, CDP_COMMAND_TIMEOUT_MS);
+      this.pending.set(id, { resolve, reject, timeout });
+      try {
+        this.ws.send(payload);
+      } catch (error) {
+        clearTimeout(timeout);
+        this.pending.delete(id);
+        reject(error);
+      }
     });
   }
 
@@ -63,3 +81,4 @@ export async function withPage(port, callback) {
     client.close();
   }
 }
+const CDP_COMMAND_TIMEOUT_MS = 30_000;

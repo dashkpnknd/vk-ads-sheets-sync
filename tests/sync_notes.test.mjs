@@ -5,6 +5,7 @@ import {
   noteForSkippedProject,
   noteForWrittenProject,
   notesByProjectKeyFromSkipped,
+  notesByProjectKeyFromResults,
 } from "../src/sync_notes.mjs";
 
 test("builds a dated note for a missing project spreadsheet link", () => {
@@ -96,4 +97,15 @@ test("writes an error note for partial project writes", () => {
     runDate: "2026-06-23",
     targetDate: "2026-06-22",
   }), "23.06 проверка за 22.06: частично записано — не найдена строка «Цена за лид»");
+});
+
+test("clears skipped notes when the project write succeeded", () => {
+  const notes = notesByProjectKeyFromResults({
+    writes: [{ projectKey: "prodevice|ульяновск", updatedCells: 5, missingMetricLabels: [] }],
+    skipped: [{ projectKey: "prodevice|ульяновск", reason: "vk_cabinet_read_failed" }],
+    runDate: "2026-07-10",
+    targetDate: "2026-07-09",
+  });
+
+  assert.equal(notes.has("prodevice|ульяновск"), false);
 });

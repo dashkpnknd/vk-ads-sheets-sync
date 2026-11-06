@@ -6,6 +6,13 @@ export function extractSpreadsheetId(value) {
   return /^[a-zA-Z0-9_-]{20,}$/.test(text) ? text : "";
 }
 
+export function extractSheetGid(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const hashMatch = text.match(/[#&?]gid=(\d+)/);
+  return hashMatch ? hashMatch[1] : "";
+}
+
 export function extractSpreadsheetIds(value) {
   const text = String(value || "").trim();
   if (!text) return [];
@@ -17,9 +24,13 @@ export function extractSpreadsheetIds(value) {
     .filter((part) => /^[a-zA-Z0-9_-]{20,}$/.test(part));
 }
 
+function normalizeProjectKey(value) {
+  return String(value || "").trim().toLowerCase().replace(/ё/g, "е");
+}
+
 export function projectRecordsFromValues(values) {
   return values.slice(1).flatMap((row) => {
-    const projectKey = String(row[3] || "").trim().toLowerCase();
+    const projectKey = normalizeProjectKey(row[3]);
     if (!projectKey) return [];
     const spreadsheetUrl = String(row[4] || "").trim();
     return [{
@@ -29,6 +40,7 @@ export function projectRecordsFromValues(values) {
       project_key: projectKey,
       google_spreadsheet_url: spreadsheetUrl,
       google_spreadsheet_id: extractSpreadsheetId(spreadsheetUrl),
+      google_sheet_gid: extractSheetGid(spreadsheetUrl),
       sheet_name: String(row[5] || "").trim(),
       notes: String(row[7] || "").trim(),
     }];

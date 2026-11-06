@@ -33,7 +33,17 @@ export function buildMasterRegistryRows(cabinets, existingProjects = [], statuse
   const existingByKey = new Map(existingProjects.map((project) => [project.project_key, project]));
   const statusByCabinet = new Map(statuses.map((status) => [cabinetKey(status), status]));
   const notesByProjectKey = options.notesByProjectKey || new Map();
-  const projectsByKey = new Map();
+  const projectsByKey = new Map(
+    existingProjects.map((project) => [
+      project.project_key,
+      {
+        projectName: project.project_name || "",
+        city: project.city || "",
+        projectKey: project.project_key,
+        cabinetCount: 0,
+      },
+    ]),
+  );
 
   for (const cabinet of cabinets) {
     for (const parsed of projectEntriesForCabinet(cabinet, options.multiCityCabinets)) {
@@ -43,6 +53,8 @@ export function buildMasterRegistryRows(cabinets, existingProjects = [], statuse
         projectKey: parsed.projectKey,
         cabinetCount: 0,
       };
+      current.projectName ||= parsed.projectName;
+      current.city ||= parsed.city;
       current.cabinetCount += 1;
       projectsByKey.set(parsed.projectKey, current);
     }
@@ -52,7 +64,7 @@ export function buildMasterRegistryRows(cabinets, existingProjects = [], statuse
     .sort((left, right) => left.projectKey.localeCompare(right.projectKey, "ru"))
     .map((project, index) => {
       const existing = existingByKey.get(project.projectKey) || {};
-      const url = existing.google_spreadsheet_url || "";
+      const url = options.projectUrlsByKey?.get(project.projectKey) || existing.google_spreadsheet_url || "";
       const fallbackNote = url ? options.noActivityNote : options.missingSheetNote;
       const note = notesByProjectKey.has(project.projectKey)
         ? notesByProjectKey.get(project.projectKey)

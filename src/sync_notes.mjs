@@ -6,7 +6,7 @@ function shortDate(date) {
 
 function writeFailureText(error) {
   const text = String(error || "");
-  const metric = text.match(/Metric row not found: (.+)$/);
+  const metric = text.match(/Metric rows? not found: (.+)$/);
   if (metric) {
     return `не записалось — в таблице не найдена строка «${metric[1]}»`;
   }
@@ -72,7 +72,11 @@ export function notesByProjectKeyFromResults({ writes = [], skipped = [], projec
   const notes = notesByProjectKeyFromSkipped(skipped, { projects, runDate, targetDate });
   for (const write of writes) {
     const note = noteForWrittenProject({ ...write, runDate, targetDate });
-    if (note.trim()) notes.set(write.projectKey, note);
+    if (note.trim()) {
+      notes.set(write.projectKey, note);
+    } else {
+      notes.delete(write.projectKey);
+    }
   }
   return notes;
 }

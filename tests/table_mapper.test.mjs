@@ -135,3 +135,27 @@ test("targets the city-specific table block when one sheet contains multiple cit
   ]);
   assert.deepEqual(plan.missingMetricLabels, []);
 });
+
+
+test("adds configured project-specific metrics", () => {
+  const values = [
+    ["", "Месяц", "", "", "1 августа"],
+    ["Кол-во лидов", "", "", "Кол-во лидов"],
+    ["Цена за лид", "", "", "Цена за лид"],
+    ["Цена за лид с учетом бонусов", "", "", "Цена за лид с учетом бонусов"],
+    ["Клики", "", "", "Клики"],
+    ["Просмотры", "", "", "Просмотры"],
+    ["Расходы", "", "", "Расходы"],
+    ["Расходы + НДС", "", "", "Расходы + НДС"],
+  ];
+  const plan = buildMetricUpdatePlan({
+    sheetName: "ВК Таргет Август", values, date: "2026-08-01",
+    metrics: { leads: 2, cpl: 100, cplWithBonus: 50, spend: 200, spendWithVat: 244, clicks: 12, shows: 345 },
+    additionalMetricLabels: { clicks: "Клики", shows: "Просмотры" },
+  });
+  assert.deepEqual(plan.missingMetricLabels, []);
+  assert.deepEqual(plan.updates.slice(-2), [
+    { range: "ВК Таргет Август!E5", values: [[12]] },
+    { range: "ВК Таргет Август!E6", values: [[345]] },
+  ]);
+});
